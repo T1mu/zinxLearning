@@ -1,9 +1,9 @@
 package znet
 
 import (
-	"code.xf.com/xf/2021-5-9/zinx/zface"
 	"fmt"
 	"net"
+	"zinx/zface"
 )
 
 // Server IServer的接口实现，定义一个服务器的结构体
@@ -14,7 +14,6 @@ type Server struct {
 	IpVersion string
 	// 服务器的IP地址
 	Ip string
-
 	// 服务器的端口
 	Port int
 }
@@ -34,7 +33,9 @@ func (s *Server) Start() {
 			fmt.Println("监听TCP地址出错:", err)
 			return
 		}
-		fmt.Printf("[Start...]:\n>>>>Name:%s IpVersion:%s Ip:%s Port:%d\n", s.Name, s.IpVersion, s.Ip, s.Port)
+		fmt.Printf("[Got Listener...]\n[Wating For Conn...]:\n" +
+			"[Server Infomation]Name:%s IpVersion:%s Ip:%s Port:%d\n",
+			s.Name, s.IpVersion, s.Ip, s.Port)
 		// 已经获取到listener，循环监听数据
 		// 注意：读取到一个内容后，会for循环等待下一个conn连接
 		for {
@@ -43,16 +44,18 @@ func (s *Server) Start() {
 				fmt.Println("接受信息出错:", err)
 				continue
 			}
+			// 开启go程读取连接信息，并将信息回显给客户端
 			go func() {
 				for {
+					// 读取信息
 					buff := make([]byte, 512)
 					n, err := conn.Read(buff)
 					if err != nil {
 						fmt.Println("读数据出错:", err)
 						continue
 					}
+					fmt.Print("[Read Buffers]", string(buff[:n]))
 					// 回显功能（写数据）
-					fmt.Print("读到数据:", string(buff[:n]))
 					if _, err := conn.Write(buff[:n]); err != nil {
 						fmt.Println("写数据出错:", err)
 						continue
@@ -76,6 +79,7 @@ func (s *Server) Serve() {
 	select {}
 }
 
+// NewServer 创建一个Server对象，返回zface.IServer抽象对象
 func NewServer(name string) zface.IServer {
 	server := &Server{
 		Name:      name,
