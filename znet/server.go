@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"zinx/zface"
@@ -22,7 +23,8 @@ type Server struct {
 func (s *Server) Start() {
 	go func() {
 		// 通过net.ResolveTCPAddr方法获取TCP地址
-		addr, err := net.ResolveTCPAddr(string(s.IpVersion), fmt.Sprintf("%s:%d", s.Ip, s.Port))
+		addr, err := net.ResolveTCPAddr(string(s.IpVersion),
+			fmt.Sprintf("%s:%d", s.Ip, s.Port))
 		if err != nil {
 			fmt.Println("解析TCPAddr出错:", err)
 			return
@@ -33,38 +35,36 @@ func (s *Server) Start() {
 			fmt.Println("监听TCP地址出错:", err)
 			return
 		}
-		fmt.Printf("[Got Listener...]\n[Wating For Conn...]:\n" +
+		fmt.Printf("[Got Listener...]\n[Wating For Conn...]:\n"+
 			"[Server Infomation]Name:%s IpVersion:%s Ip:%s Port:%d\n",
 			s.Name, s.IpVersion, s.Ip, s.Port)
 		// 已经获取到listener，循环监听数据
 		// 注意：读取到一个内容后，会for循环等待下一个conn连接
+		cid := 0
 		for {
-			conn, err := listener.Accept()
+			conn, err := listener.AcceptTCP()
 			if err != nil {
 				fmt.Println("接受信息出错:", err)
 				continue
 			}
 			// 开启go程读取连接信息，并将信息回显给客户端
-			go func() {
-				for {
-					// 读取信息
-					buff := make([]byte, 512)
-					n, err := conn.Read(buff)
-					if err != nil {
-						fmt.Println("读数据出错:", err)
-						continue
-					}
-					fmt.Print("[Read Buffers]", string(buff[:n]))
-					// 回显功能（写数据）
-					if _, err := conn.Write(buff[:n]); err != nil {
-						fmt.Println("写数据出错:", err)
-						continue
-					}
-				}
-			}()
+			// 使用Connection包替换V0.1纯代码内容（模块化）
+			c := NewConnection(conn, cid, CallBackToClient)
+			cid++
+			go c.Start()
 		}
 	}()
+}
 
+// CallBackToClient 注册的回调函数，功能为回显数据内容给客户端
+func CallBackToClient(conn *net.TCPConn, buffers []byte, cnt int) error {
+	fmt.Println("[CallBackToClient] Running")
+	cnt, err := conn.Write(buffers)
+	if err != nil {
+		fmt.Println("[CallBackToClient] Error:", err)
+		return errors.New("call back error")
+	}
+	return nil
 }
 
 // Stop 停止服务的实现
