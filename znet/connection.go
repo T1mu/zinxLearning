@@ -20,16 +20,17 @@ type Connection struct {
 	ConnId int
 	//	当前连接的状态
 	IsClosed bool
-	//	处理事件函数
-	HandleAPI zface.HandleFunc
 	//	通知退出管道
 	ExitChan chan bool
+	//	Router
+	Router zface.IRouter
 }
 
 //	StartReader 读方法 在Connection.Start方法中被调用
 //	具体功能为：读取Buffer并将其作为HandleAPI的参数输入
 func (c *Connection) StartReader() {
-	fmt.Printf("[Reading] Connection ID=%d\n RemoteAddr=%s",
+	fmt.Printf("\t[Reading] Information:\n"+
+		"\t\tConnection ID=%d\n RemoteAddr=%s",
 		c.ConnId, c.RemoteAddr().String())
 	defer fmt.Printf("[Read Exit] Connection ID=%d\n", c.ConnId)
 	defer c.Stop()
@@ -40,8 +41,21 @@ func (c *Connection) StartReader() {
 		if err != nil {
 			fmt.Println("Reading Error", err)
 		}
-		fmt.Printf("[Reading] Information: cnt=%d\n", cnt)
-		c.HandleAPI(c.Conn, buff, cnt)
+		fmt.Printf("\t[Reading] Information:\n"+
+			"\t\tRead Buffers:%s cnt=%d\n",
+			buff[:cnt-1], cnt)
+		//	集成数据到Request中，作为路由方法的参数
+		req := Request{
+			conn: c,
+			data: buff,
+		}
+		//	执行路由方法
+		go func(request zface.IRequest) {
+			c.Router.PreHandle(request)
+			c.Router.Handle(request)
+			c.Router.PostHandle(request)
+		}(&req)
+
 	}
 }
 
@@ -93,13 +107,13 @@ func (c *Connection) SendMsg(data []byte) error {
 
 //	NewConnection 初始化连接模块的方法
 func NewConnection(conn *net.TCPConn, id int,
-	callbackAPI zface.HandleFunc) zface.IConnection {
+	router zface.IRouter) zface.IConnection {
 	c := &Connection{
-		Conn:      conn,
-		ConnId:    id,
-		HandleAPI: callbackAPI,
-		IsClosed:  false,
-		ExitChan:  make(chan bool),
+		Conn:     conn,
+		ConnId:   id,
+		Router:   router,
+		IsClosed: false,
+		ExitChan: make(chan bool),
 	}
 	return c
 }

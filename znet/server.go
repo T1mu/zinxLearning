@@ -1,7 +1,6 @@
 package znet
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"zinx/zface"
@@ -17,6 +16,8 @@ type Server struct {
 	Ip string
 	// 服务器的端口
 	Port int
+	// Router
+	Router zface.IRouter
 }
 
 // Start 启动服务的实现
@@ -49,22 +50,11 @@ func (s *Server) Start() {
 			}
 			// 开启go程读取连接信息，并将信息回显给客户端
 			// 使用Connection包替换V0.1纯代码内容（模块化）
-			c := NewConnection(conn, cid, CallBackToClient)
+			c := NewConnection(conn, cid, s.Router)
 			cid++
 			go c.Start()
 		}
 	}()
-}
-
-// CallBackToClient 注册的回调函数，功能为回显数据内容给客户端
-func CallBackToClient(conn *net.TCPConn, buffers []byte, cnt int) error {
-	fmt.Println("[CallBackToClient] Running")
-	cnt, err := conn.Write(buffers)
-	if err != nil {
-		fmt.Println("[CallBackToClient] Error:", err)
-		return errors.New("call back error")
-	}
-	return nil
 }
 
 // Stop 停止服务的实现
@@ -79,6 +69,12 @@ func (s *Server) Serve() {
 	select {}
 }
 
+// AddRouter
+func (s *Server) AddRouter(router zface.IRouter) {
+	s.Router = router
+	fmt.Println("[AddRouter] success")
+}
+
 // NewServer 创建一个Server对象，返回zface.IServer抽象对象
 func NewServer(name string) zface.IServer {
 	server := &Server{
@@ -86,6 +82,7 @@ func NewServer(name string) zface.IServer {
 		IpVersion: "tcp4",
 		Ip:        "127.0.0.1",
 		Port:      9573,
+		Router:    nil,
 	}
 	return server
 }
