@@ -36,8 +36,9 @@ func (s *Server) Start() {
 			fmt.Println("监听TCP地址出错:", err)
 			return
 		}
-		fmt.Printf("[Got Listener...]\n[Wating For Conn...]:\n"+
-			"[Server Infomation]Name:%s IpVersion:%s Ip:%s Port:%d\n",
+		fmt.Printf("[Got Listener]\tsuccess\n[Wating For Conn...]:\n")
+		fmt.Printf("[Server Infomation]\n\tName:%s\n\tIpVersion:%s\n\tIp:%s\n" +
+			"\tPort:%d\n",
 			s.Name, s.IpVersion, s.Ip, s.Port)
 		// 已经获取到listener，循环监听数据
 		// 注意：读取到一个内容后，会for循环等待下一个conn连接

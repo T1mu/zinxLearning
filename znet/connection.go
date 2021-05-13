@@ -29,20 +29,22 @@ type Connection struct {
 //	StartReader 读方法 在Connection.Start方法中被调用
 //	具体功能为：读取Buffer并将其作为HandleAPI的参数输入
 func (c *Connection) StartReader() {
-	fmt.Printf("\t[Reading] Information:\n"+
-		"\t\tConnection ID=%d\n RemoteAddr=%s",
+	//	输出当前连接相关信息，连接的ID号和连接客户端信息
+	fmt.Printf("\t[Reading]\tAboutConnection:\n\t\t"+
+		"Connection ID=%d\n\t\tRemoteAddr=%s\n",
 		c.ConnId, c.RemoteAddr().String())
-	defer fmt.Printf("[Read Exit] Connection ID=%d\n", c.ConnId)
+	defer fmt.Printf("\t[Read\tExit]\n\t\tConnection ID=%d\n", c.ConnId)
 	defer c.Stop()
 	//	读
 	for {
 		buff := make([]byte, 512)
 		cnt, err := c.Conn.Read(buff)
 		if err != nil {
-			fmt.Println("Reading Error", err)
+			fmt.Println("\t[Reading\tError]", err)
 		}
-		fmt.Printf("\t[Reading] Information:\n"+
-			"\t\tRead Buffers:%s cnt=%d\n",
+		//	输出读取到的数据流信息，包括数据内容与输出长度
+		fmt.Printf("\t[Reading] AboutBuffers:\n"+
+			"\t\tBuffers:%s\n\t\tcnt=%d\n",
 			buff[:cnt-1], cnt)
 		//	集成数据到Request中，作为路由方法的参数
 		req := Request{
@@ -64,7 +66,7 @@ func (c *Connection) StartReader() {
 // 	Start 启动连接，让当前的连接准备开始工作
 //	包含StartReader读Buffers方法
 func (c *Connection) Start() {
-	fmt.Printf("[Start] Connection ID=%d\n", c.ConnId)
+	fmt.Printf("[ConnStart]\n\tConnection ID=%d\n", c.ConnId)
 	// 读数据
 	go c.StartReader()
 }
